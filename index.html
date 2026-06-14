@@ -25,11 +25,25 @@
             padding: 10px 15px;
             border-radius: 5px;
             font-size: 12px;
+            z-index: 10;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 20;
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    <div id="loading">Loading 3D model...</div>
     <div id="info">
         <p>🖱️ Drag to rotate | Scroll to zoom | Right-click to pan</p>
     </div>
@@ -50,43 +64,76 @@
             75,
             window.innerWidth / window.innerHeight,
             0.1,
-            1000
+            10000
         );
-        camera.position.z = 100;
 
         // Renderer setup
-        const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('canvas') });
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            canvas: document.getElementById('canvas'),
+            alpha: true
+        });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.shadowMap.enabled = true;
 
         // Lighting
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
         directionalLight.position.set(50, 50, 50);
         directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
         scene.add(directionalLight);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
 
         // Load STL model
         const loader = new THREE.STLLoader();
         let model;
 
         loader.load('Beshimi.stl', function (geometry) {
+            // Compute normals for proper lighting
             geometry.computeVertexNormals();
             geometry.center();
+
+            // Get bounding box to scale model properly
+            geometry.computeBoundingBox();
+            const boundingBox = geometry.boundingBox;
+            const size = boundingBox.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 50 / maxDim;
 
             const material = new THREE.MeshPhongMaterial({
                 color: 0x00a8ff,
                 emissive: 0x111111,
-                shininess: 200
+                shininess: 200,
+                side: THREE.DoubleSide
             });
 
             model = new THREE.Mesh(geometry, material);
+            model.scale.multiplyScalar(scale);
             model.castShadow = true;
             model.receiveShadow = true;
             scene.add(model);
 
-            // Auto-rotate
+            // Position camera to view the entire model
+            const distance = maxDim / Math.tan((camera.fov / 2) * Math.PI / 180);
+            camera.position.z = distance * 1.5;
+            camera.lookAt(model.position);
+
+            // Auto-rotate flag
             model.userData.autoRotate = true;
+
+            // Hide loading message
+            document.getElementById('loading').style.display = 'none';
+        }, 
+        function (progress) {
+            console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
+        },
+        function (error) {
+            console.error('Error loading STL:', error);
+            document.getElementById('loading').textContent = '❌ Error loading model. Check if Beshimi.stl exists.';
         });
 
         // Mouse controls
