@@ -9,7 +9,18 @@
 </head>
 <body style="margin: 0; padding: 0;">
     <!-- Displays your model and enables the "View in AR" button on phones -->
-    <model-viewer src="Beshimi.glb" ios-src="model.usdz" ar ar-modes="webxr scene-viewer quick-look" camera-controls shadow-intensity="1" style="width: 100vw; height: 100vh;">
+    <model-viewer 
+        src="Beshimi.glb" 
+        ios-src="model.usdz" 
+        ar 
+        ar-modes="webxr scene-viewer quick-look" 
+        camera-controls 
+        shadow-intensity="1"
+        exposure="1"
+        tone-mapping="aces"
+        style="width: 100vw; height: 100vh;"
+        auto-rotate
+        auto-rotate-delay="0">
     </model-viewer>
 </body>
 </html>
