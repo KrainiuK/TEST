@@ -47,32 +47,44 @@
         const loader = new THREE.STLLoader();
         let model;
 
+
         loader.load('Beshimi.stl', function (geometry) {
-            geometry.computeVertexNormals();
-            geometry.center();
+        geometry.computeVertexNormals();
+        geometry.center();
 
-            const material = new THREE.MeshPhongMaterial({
-                color: 0x00a8ff,
-                emissive: 0x111111,
-                shininess: 200
-            });
-
-            model = new THREE.Mesh(geometry, material);
-            scene.add(model);
+    // --- AUTO-SCALE MAGIC STARTS HERE ---
+    // This calculates how big the model actually is
+        geometry.computeBoundingBox();
+        const box = geometry.boundingBox;
+        const size = new THREE.Vector3();
+        box.getSize(size);
+    
+    // Find the largest dimension (X, Y, or Z)
+        const maxDim = Math.max(size.x, size.y, size.z);
+    
+    // Resize the model so its largest side is exactly 40 units wide
+        const scale = 40 / maxDim;
+    
+        const material = new THREE.MeshPhongMaterial({
+            color: 0x00a8ff,
+            emissive: 0x111111,
+            shininess: 200
         });
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update(); // Required for smooth damping
-            renderer.render(scene, camera);
-        }
-
+        model = new THREE.Mesh(geometry, material);
+        model.scale.set(scale, scale, scale); // Apply the smart scaling
+        scene.add(model);
+        console.log("Model loaded successfully and auto-scaled!");
+    }, 
+// This function tracks progress
+    function (xhr) {
+        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    },
+// This function catches errors
+    function (error) {
+        console.error("An error happened while loading the STL:", error);
+    });
+        
         animate();
     </script>
 </body>
